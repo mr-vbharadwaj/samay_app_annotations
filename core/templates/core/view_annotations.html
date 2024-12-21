@@ -1,0 +1,47 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">Verified Annotations</h1>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h2 class="text-lg leading-6 font-medium text-gray-900">Annotation List</h2>
+        </div>
+        <div class="border-t border-gray-200">
+            <ul class="divide-y divide-gray-200">
+                {% for annotation in annotations %}
+                <li class="px-4 py-4 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">
+                                Annotation #{{ annotation.id }} for Image #{{ annotation.image.id }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                Annotated by: {{ annotation.annotator.username }} | 
+                                Verified by: {{ annotation.verifier.username }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                Created: {{ annotation.created_at|date:"M d, Y" }} | 
+                                Updated: {{ annotation.updated_at|date:"M d, Y" }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-600">{{ annotation.annotation_data }}</p>
+                    </div>
+                    {% if annotation.verified_image %}
+                    <div class="mt-2">
+                        <img src="{{ annotation.verified_image.url }}" alt="Verified Image" class="max-w-full h-auto">
+                    </div>
+                    {% endif %}
+                </li>
+                {% empty %}
+                <li class="px-4 py-4 sm:px-6">No verified annotations available.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
