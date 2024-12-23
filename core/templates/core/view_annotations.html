@@ -1,45 +1,28 @@
-{% extends 'core/base.html' %}
+{% extends 'base.html' %}
+
+{% block title %}View Annotations{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <h1 class="text-2xl font-bold">Verified Annotations</h1>
-    
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-            <h2 class="text-lg leading-6 font-medium text-gray-900">Annotation List</h2>
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="p-8">
+        <h2 class="text-2xl font-bold mb-4">View Annotations</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for annotation in annotations %}
+            <div class="border rounded-lg overflow-hidden">
+                <img src="{{ MEDIA_URL }}images/{{ annotation.image_name }}" alt="{{ annotation.image_name }}" class="w-full h-48 object-cover">
+                <div class="p-4">
+                    <p class="text-sm text-gray-600">{{ annotation.image_name }}</p>
+                    <a href="{{ MEDIA_URL }}annotations/{{ annotation.annotation_file }}" target="_blank" class="mt-2 inline-block bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-1 px-2 rounded">
+                        View Annotation
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p class="col-span-3 text-gray-500">No annotations available.</p>
+            {% endfor %}
         </div>
-        <div class="border-t border-gray-200">
-            <ul class="divide-y divide-gray-200">
-                {% for annotation in annotations %}
-                <li class="px-4 py-4 sm:px-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm font-medium text-gray-900">
-                                Annotation #{{ annotation.id }} for Image #{{ annotation.image.id }}
-                            </div>
-                            <div class="text-sm text-gray-500">
-                                Annotated by: {{ annotation.annotator.username }} | 
-                                Verified by: {{ annotation.verifier.username }}
-                            </div>
-                            <div class="text-sm text-gray-500">
-                                Created: {{ annotation.created_at|date:"M d, Y" }} | 
-                                Updated: {{ annotation.updated_at|date:"M d, Y" }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <p class="text-sm text-gray-600">{{ annotation.annotation_data }}</p>
-                    </div>
-                    {% if annotation.verified_image %}
-                    <div class="mt-2">
-                        <img src="{{ annotation.verified_image.url }}" alt="Verified Image" class="max-w-full h-auto">
-                    </div>
-                    {% endif %}
-                </li>
-                {% empty %}
-                <li class="px-4 py-4 sm:px-6">No verified annotations available.</li>
-                {% endfor %}
-            </ul>
+        <div class="mt-8">
+            <a href="{% url 'dashboard' %}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Back to Dashboard</a>
         </div>
     </div>
 </div>

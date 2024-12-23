@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify Annotation{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="p-8">
+        <h2 class="text-2xl font-bold mb-4">Verify Annotation #{{ annotation.id }}</h2>
+        <div class="mb-8">
+            <img src="{{ annotation.image.file.url }}" alt="Annotated image" class="max-w-full h-auto">
+        </div>
+        <div class="mb-8">
+            <h3 class="text-xl font-bold mb-2">Annotation Data:</h3>
+            <pre class="bg-gray-100 p-4 rounded">{{ annotation.data|pprint }}</pre>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">Submit Verification</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
-    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -50,7 +49,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'core.middleware.RoleBasedRedirectMiddleware',  # Add this line
+    'core.middleware.AuditLogMiddleware',  # Add this line
+    # 'core.middleware.RoleBasedRedirectMiddleware',  # Add this line
 ]
 
 ROOT_URLCONF = 'annotations_manager.urls'

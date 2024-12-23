@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Keypoint Annotation{% endblock %}
+
+{% block extra_head %}
+<style>
+    #annotationCanvas {
+        border: 1px solid #000;
+        cursor: crosshair;
+    }
+    .button-group {
+        margin-top: 10px;
+    }
+    .button-group button {
+        margin-right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="p-8">
+        <h2 class="text-2xl font-bold mb-4">Keypoint Annotation for Image: {{ image.file.name }}</h2>
+        <div class="mb-8">
+            <canvas id="annotationCanvas"></canvas>
+        </div>
+        <div class="button-group">
+            <button id="saveButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Save Annotation</button>
+            <button id="resetButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Reset</button>
+            <button id="undoButton" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">Undo</button>
+        </div>
+        <div id="message" class="mt-4 text-green-600"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const canvas = document.getElementById('annotationCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = "{{ image.file.url }}";
+    let keypoints = [];
+    let selectedPoint = null;
+    const keypointRadius = 5;
+    const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000', '#FFC0CB'];
+
+    img.onload = function() {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        drawImage();
+    };
+
+    function drawImage() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        drawKeypoints();
+    }
+
+    function drawKeypoints() {
+        keypoints.forEach((point, index) => {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, keypointRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = colors[index % colors.length];
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(index + 1, point.x, point.y);
+        });
+    }
+
+    canvas.addEventListener('mousedown', startDragging);
+    canvas.addEventListener('mousemove', drag);
+    canvas.addEventListener('mouseup', stopDragging);
+    canvas.addEventListener('mouseout', stopDragging);
+
+    function startDragging(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        selectedPoint = keypoints.findIndex(point => 
+            Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < keypointRadius
+        );
+
+        if (selectedPoint === -1) {
+            keypoints.push({ x, y });
+            drawImage();
+        }
+    }
+
+    function drag(e) {
+        if (selectedPoint !== -1) {
+            const rect = canvas.getBoundingClientRect();
+            keypoints[selectedPoint].x = e.clientX - rect.left;
+            keypoints[selectedPoint].y = e.clientY - rect.top;
+            drawImage();
+        }
+    }
+
+    function stopDragging() {
+        selectedPoint = -1;
+    }
+
+    document.getElementById('saveButton').addEventListener('click', saveAnnotation);
+    document.getElementById('resetButton').addEventListener('click', resetAnnotation);
+    document.getElementById('undoButton').addEventListener('click', undoLastKeypoint);
+
+    function saveAnnotation() {
+        const imageId = "{{ image.id }}";
+        const annotationData = JSON.stringify(keypoints);
+
+        console.log("Saving annotation:", annotationData);
+
+        fetch(`/api/save-annotation/${imageId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({ annotation_data: annotationData }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Save response:", data);
+            if (data.status === 'success') {
+                document.getElementById('message').textContent = 'Annotation saved successfully!';
+            } else {
+                document.getElementById('message').textContent = 'Error saving annotation';
+            }
+        })
+        .catch(error => {
+            console.error("Error saving annotation:", error);
+            document.getElementById('message').textContent = 'Error saving annotation';
+        });
+    }
+
+    function resetAnnotation() {
+        keypoints = [];
+        drawImage();
+    }
+
+    function undoLastKeypoint() {
+        keypoints.pop();
+        drawImage();
+    }
+</script>
+{% endblock %}

@@ -1,87 +1,54 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.conf import settings
+from django.db import models
 
 class User(AbstractUser):
-    USER_TYPES = (
-        ('viewer', 'Viewer'),
+    ROLES = (
+        ('admin', 'Admin'),
         ('annotator', 'Annotator'),
         ('verifier', 'Verifier'),
+        ('viewer', 'Viewer'),
     )
-    user_type = models.CharField(max_length=10, choices=USER_TYPES)
-
-class Dataset(models.Model):
-    name = models.CharField(max_length=200)
-    created_at = models.DateTimeField(auto_now_add=True)
-    file_path = models.CharField(max_length=500)
-
-# class Image(models.Model):
-#     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
-#     file_path = models.CharField(max_length=500)
-#     machine_label = models.TextField(null=True, blank=True)
-#     status = models.CharField(max_length=20, choices=[
-#         ('unlabeled', 'Unlabeled'),
-#         ('machine_labeled', 'Machine Labeled'),
-#         ('annotated', 'Annotated'),
-#         ('verified', 'Verified')
-#     ])
-
-# class Annotation(models.Model):
-#     image = models.ForeignKey(Image, on_delete=models.CASCADE)
-#     annotator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='annotations')
-#     verifier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='verifications', null=True)
-#     annotation_data = models.TextField()
-#     annotator_comment = models.TextField(null=True, blank=True)
-#     verifier_comment = models.TextField(null=True, blank=True)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
-#     status = models.CharField(max_length=20, choices=[
-#         ('pending', 'Pending Verification'),
-#         ('verified', 'Verified'),
-#         ('rejected', 'Rejected')
-#     ])
-#     annotated_image = models.ImageField(upload_to='annotated_images/', null=True, blank=True)
-#     verified_image = models.ImageField(upload_to='verified_images/', null=True, blank=True)
-
+    user_type = models.CharField(
+        max_length=10,
+        choices=ROLES,
+        default='user',
+    )
+    role = models.CharField(max_length=20, choices=ROLES, default='viewer')
 
 class Image(models.Model):
     file = models.ImageField(upload_to='images/')
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_images', default=1)
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    processed = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=[
-        ('unlabeled', 'Unlabeled'),
-        ('machine_labeled', 'Machine Labeled'),
-        ('annotated', 'Annotated'),
-        ('verified', 'Verified')
-    ], default='unlabeled')
 
-    def __str__(self):
-        return f"Image {self.id}"
-
-class KeypointAnnotation(models.Model):
-    image = models.ForeignKey(Image, on_delete=models.CASCADE)
+class Annotation(models.Model):
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='annotations')
     annotator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='annotations')
-    points = models.JSONField()  # Stores keypoint coordinates
-    confidence = models.JSONField()  # Stores confidence values
-    bbox = models.JSONField()  # Stores bounding box coordinates
+    data = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
-    verified = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=[
-        ('pending', 'Pending Verification'),
-        ('verified', 'Verified'),
-        ('rejected', 'Rejected')
-    ], default='pending')
-    annotation_notes = models.TextField(blank=True, null=True)  # Renamed from 'comments'
-    
-    def __str__(self):
-        return f"Annotation for Image {self.image.id}"
+    updated_at = models.DateTimeField(auto_now=True)
 
-class Comment(models.Model):
-    annotation = models.ForeignKey(KeypointAnnotation, on_delete=models.CASCADE, related_name='comments')
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
-    text = models.TextField()
+class Verification(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+    annotation = models.OneToOneField(Annotation, on_delete=models.CASCADE, related_name='verification')
+    verifier = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verifications')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    feedback = models.TextField(blank=True)
+    verified_at = models.DateTimeField(auto_now=True)
+
+class Batch(models.Model):
+    name = models.CharField(max_length=255)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_batches')
     created_at = models.DateTimeField(auto_now_add=True)
+    images = models.ManyToManyField(Image, related_name='batches')
+    description = models.TextField(blank=True)
 
-    def __str__(self):
-        return f"Comment by {self.author.username} on Annotation {self.annotation.id}"
-
+class AuditLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    action = models.CharField(max_length=255)
+    url = models.CharField(max_length=255)
+    data = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)

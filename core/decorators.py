@@ -1,21 +1,18 @@
+from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import redirect
-from django.contrib import messages
-from functools import wraps
 
-def annotator_required(function):
-    @wraps(function)
-    def wrap(request, *args, **kwargs):
-        if request.user.user_type == 'annotator':
-            return function(request, *args, **kwargs)
-        messages.error(request, 'You must be an annotator to access this page.')
-        return redirect('dashboard')
-    return wrap
+def role_required(allowed_roles):
+    def decorator(view_func):
+        def wrapper(request, *args, **kwargs):
+            if request.user.role in allowed_roles:
+                return view_func(request, *args, **kwargs)
+            else:
+                return redirect('dashboard')
+        return wrapper
+    return decorator
 
-def verifier_required(function):
-    @wraps(function)
-    def wrap(request, *args, **kwargs):
-        if request.user.user_type == 'verifier':
-            return function(request, *args, **kwargs)
-        messages.error(request, 'You must be a verifier to access this page.')
-        return redirect('dashboard')
-    return wrap
+admin_required = role_required(['admin'])
+annotator_required = role_required(['annotator'])
+verifier_required = role_required(['verifier'])
+viewer_required = role_required(['viewer'])
+

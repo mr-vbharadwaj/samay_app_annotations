@@ -1,9 +1,6 @@
 from django.contrib import admin
-
-# Register your models here.
-from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Dataset, Image, KeypointAnnotation
+from .models import User, Image, Annotation, Verification, Batch
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'user_type', 'is_staff')
@@ -16,6 +13,8 @@ class CustomUserAdmin(UserAdmin):
     )
 
 admin.site.register(User, CustomUserAdmin)
-admin.site.register(Dataset)
 admin.site.register(Image)
-admin.site.register(KeypointAnnotation)
+admin.site.register(Annotation)
+admin.site.register(Verification)
+admin.site.register(Batch)
+

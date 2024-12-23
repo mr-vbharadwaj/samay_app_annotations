@@ -1,23 +1,38 @@
 from django import forms
-from .models import Image, KeypointAnnotation, Comment
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from .models import User, Image, Annotation, Verification, Batch
+
+class CustomUserCreationForm(UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = UserCreationForm.Meta.fields + ('role',)
+
+class LoginForm(AuthenticationForm):
+    pass
 
 class ImageUploadForm(forms.ModelForm):
     class Meta:
         model = Image
         fields = ['file']
 
-class KeypointAnnotationForm(forms.ModelForm):
+class AnnotationForm(forms.ModelForm):
     class Meta:
-        model = KeypointAnnotation
-        fields = ['points', 'confidence', 'bbox', 'annotation_notes']
+        model = Annotation
+        fields = ['data']
         widgets = {
-            'points': forms.HiddenInput(),
-            'confidence': forms.HiddenInput(),
-            'bbox': forms.HiddenInput(),
+            'data': forms.Textarea(attrs={'rows': 4}),
         }
 
-class CommentForm(forms.ModelForm):
+class VerificationForm(forms.ModelForm):
     class Meta:
-        model = Comment
-        fields = ['text']
+        model = Verification
+        fields = ['status', 'feedback']
+        widgets = {
+            'feedback': forms.Textarea(attrs={'rows': 4}),
+        }
+
+class BatchForm(forms.ModelForm):
+    class Meta:
+        model = Batch
+        fields = ['name', 'description']
 

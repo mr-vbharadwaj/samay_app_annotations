@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="p-8">
+        <h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for image in images %}
+            <div class="border rounded-lg overflow-hidden">
+                <img src="{{ image.file.url }}" alt="Image #{{ image.id }}" class="w-full h-48 object-cover">
+                <div class="p-4">
+                    <p class="text-sm text-gray-600">Image #{{ image.id }}</p>
+                    <a href="{% url 'create_annotation' image.id %}" class="mt-2 inline-block bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-1 px-2 rounded">
+                        Annotate
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p class="col-span-3 text-gray-500">No images uploaded yet.</p>
+            {% endfor %}
+        </div>
+        <div class="mt-8">
+            <a href="{% url 'upload_image' %}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Upload New Image</a>
+            <a href="{% url 'view_annotations' %}" class="ml-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">View Annotations</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

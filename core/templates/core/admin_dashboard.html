@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-8">Admin Dashboard</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div>
+        <h2 class="text-2xl font-bold mb-4">Users</h2>
+        <ul class="bg-white shadow overflow-hidden sm:rounded-md">
+            {% for user in users %}
+            <li class="border-b border-gray-200 last:border-b-0">
+                <div class="px-4 py-4 sm:px-6">
+                    <p class="text-sm font-medium text-indigo-600 truncate">{{ user.username }}</p>
+                    <p class="mt-1 text-sm text-gray-500">Role: {{ user.role }}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        <a href="{% url 'create_user' %}" class="mt-4 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Create User</a>
+    </div>
+
+    <div>
+        <h2 class="text-2xl font-bold mb-4">Batches</h2>
+        <ul class="bg-white shadow overflow-hidden sm:rounded-md">
+            {% for batch in batches %}
+            <li class="border-b border-gray-200 last:border-b-0">
+                <div class="px-4 py-4 sm:px-6">
+                    <p class="text-sm font-medium text-indigo-600 truncate">{{ batch.name }}</p>
+                    <p class="mt-1 text-sm text-gray-500">Created by: {{ batch.created_by.username }}</p>
+                    <a href="{% url 'view_batch' batch.id %}" class="mt-2 inline-block text-sm text-blue-500 hover:text-blue-700">View Batch</a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        <a href="{% url 'create_batch' %}" class="mt-4 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Create Batch</a>
+    </div>
+</div>
+{% endblock %}
+
