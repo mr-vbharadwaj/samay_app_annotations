@@ -4,37 +4,127 @@
 
 {% block extra_head %}
 <style>
+    .annotation-container {
+        position: relative;
+        margin: 20px auto;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
     #annotationCanvas {
         border: 1px solid #000;
         cursor: crosshair;
         display: block;
         margin: 0 auto;
+        max-width: 100%;
+        height: auto;
     }
+    
+    .controls-container {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    
     .button-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
         margin-top: 10px;
-        text-align: center;
     }
-    .button-group button {
-        margin-right: 10px;
+    
+    .keypoint-info {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+    
+    .error-message {
+        background-color: #fee2e2;
+        border: 1px solid #ef4444;
+        color: #dc2626;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.375rem;
+    }
+    
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
-    <div class="p-8">
-        <h2 class="text-2xl font-bold mb-4">Keypoint Annotation for Image: {{ image.file.name }}</h2>
-        <div class="mb-8">
-            <canvas id="annotationCanvas"></canvas>
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="p-8">
+            <h2 class="text-2xl font-bold mb-4">Keypoint Annotation Tool</h2>
+            <p class="text-gray-600 mb-4">Image: {{ image.file.name }}</p>
+
+            {% if error_message %}
+            <div class="error-message">
+                <strong>Error:</strong> {{ error_message }}
+            </div>
+            {% endif %}
+
+            <div class="annotation-container">
+                <canvas id="annotationCanvas"></canvas>
+            </div>
+
+            <div class="controls-container">
+                <div class="button-group">
+                    <button id="saveButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Save Annotation
+                    </button>
+                    <button id="resetButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                        Reset
+                    </button>
+                    <button id="undoButton" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+                        Undo
+                    </button>
+                    <button id="goBackButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                        Go Back
+                    </button>
+                </div>
+
+                <div class="keypoint-info mt-4">
+                    <p class="text-sm text-gray-600">Click to place keypoints. Drag existing points to adjust position.</p>
+                    <p class="text-sm text-gray-600 mt-2">Total keypoints: <span id="keypointCount">0</span></p>
+                </div>
+            </div>
         </div>
-        <div class="button-group">
-            <button id="saveButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Save Annotation</button>
-            <button id="resetButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Reset</button>
-            <button id="undoButton" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">Undo</button>
-            <button id="goBackButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Go Back</button>
-        </div>
-        <div id="message" class="mt-4 text-green-600 text-center"></div>
     </div>
+</div>
+
+<div class="loading-overlay">
+    <div class="loading-spinner"></div>
 </div>
 {% endblock %}
 
@@ -43,30 +133,70 @@
     const canvas = document.getElementById('annotationCanvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
+    const keypointCountElement = document.getElementById('keypointCount');
+    const loadingOverlay = document.querySelector('.loading-overlay');
+    
     img.src = "{{ image.file.url }}";
-
+    
+    // Initialize keypoints safely
     let keypoints = [];
+    try {
+        keypoints = JSON.parse('{{ keypoints|safe|escapejs }}') || [];
+        // Convert array format to object format for consistency
+        keypoints = keypoints.map(point => ({ x: point[0], y: point[1] }));
+    } catch (e) {
+        console.error('Failed to parse keypoints:', e);
+        keypoints = [];
+    }
+    
+    const colors = [
+        '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
+        '#FFA500', '#800080', '#008000', '#FFC0CB', '#FF1493', '#00BFFF',
+        '#40E0D0', '#FFD700', '#FF4500', '#228B22', '#FF69B4', '#8A2BE2',
+        '#FF8C00', '#2E8B57', '#87CEFA', '#191970', '#F0E68C', '#FF1493',
+        '#DAA520', '#98FB98'
+    ];
+    
+    const skeletonConnections = [
+        [0, 1], [0, 2], [1, 3], [2, 4], [5, 7], [7, 9],
+        [6, 8], [8, 10], [11, 13], [13, 15], [12, 14], [14, 16],
+        [17, 18], [18, 21], [19, 21], [19, 20], [20, 11], [20, 12],
+        [15, 24], [16, 25], [9, 22], [10, 23]
+    ];
+    
     let selectedPoint = null;
     const keypointRadius = 5;
-    const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000', '#FFC0CB'];
-
+    
     img.onload = function() {
         canvas.width = img.width;
         canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        drawKeypoints();
+        drawImage();
+        updateKeypointCount();
     };
-
-    img.onerror = function() {
-        document.getElementById('message').textContent = 'Error loading image. Please check the image URL.';
-    };
-
+    
     function drawImage() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
+        drawSkeleton();
         drawKeypoints();
     }
-
+    
+    function drawSkeleton() {
+        skeletonConnections.forEach(([startIdx, endIdx]) => {
+            if (startIdx < keypoints.length && endIdx < keypoints.length) {
+                const startPoint = keypoints[startIdx];
+                const endPoint = keypoints[endIdx];
+                
+                ctx.beginPath();
+                ctx.moveTo(startPoint.x, startPoint.y);
+                ctx.lineTo(endPoint.x, endPoint.y);
+                ctx.strokeStyle = '#0000FF';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        });
+    }
+    
     function drawKeypoints() {
         keypoints.forEach((point, index) => {
             ctx.beginPath();
@@ -79,83 +209,102 @@
             ctx.fillText(index + 1, point.x, point.y);
         });
     }
-
+    
+    function updateKeypointCount() {
+        keypointCountElement.textContent = keypoints.length;
+    }
+    
     canvas.addEventListener('mousedown', startDragging);
     canvas.addEventListener('mousemove', drag);
     canvas.addEventListener('mouseup', stopDragging);
     canvas.addEventListener('mouseout', stopDragging);
-
+    
     function startDragging(e) {
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        selectedPoint = keypoints.findIndex(point => 
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        
+        selectedPoint = keypoints.findIndex(point =>
             Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < keypointRadius
         );
-
+        
         if (selectedPoint === -1) {
             keypoints.push({ x, y });
             drawImage();
+            updateKeypointCount();
         }
     }
-
+    
     function drag(e) {
         if (selectedPoint !== -1) {
             const rect = canvas.getBoundingClientRect();
-            keypoints[selectedPoint].x = e.clientX - rect.left;
-            keypoints[selectedPoint].y = e.clientY - rect.top;
+            keypoints[selectedPoint].x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            keypoints[selectedPoint].y = (e.clientY - rect.top) * (canvas.height / rect.height);
             drawImage();
         }
     }
-
+    
     function stopDragging() {
         selectedPoint = -1;
     }
-
-    document.getElementById('saveButton').addEventListener('click', saveAnnotation);
-    document.getElementById('resetButton').addEventListener('click', resetAnnotation);
-    document.getElementById('undoButton').addEventListener('click', undoLastKeypoint);
-    document.getElementById('goBackButton').addEventListener('click', () => {
-        window.location.href = '/dashboard';
-    });
-
-    function saveAnnotation() {
-        const imageURL = "{{ image.file.url }}";
-        const imageId = "{{ image.id }}";
-
-        fetch("{% url 'api_save_annotation' image.id %}", {								   
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/txt',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({annotation_data: keypoints, image_url: imageURL, image_id: imageId})
-        })
-        .then(response => response.json())
-        .then(data => {
+    
+    document.getElementById('saveButton').addEventListener('click', async () => {
+        try {
+            loadingOverlay.style.display = 'flex';
+            
+            const response = await fetch("{% url 'api_save_annotation' image.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    annotation_data: keypoints
+                })
+            });
+            
+            const data = await response.json();
+            
             if (data.status === 'success') {
                 alert('Annotation saved successfully');
-								  
                 window.location.href = "{% url 'annotator_dashboard' %}";
-						 
             } else {
-                alert('Error saving annotation: ' + data.message);
-            }			   
-        }).catch(err => {
-            document.getElementById('message').textContent = 'Error saving annotation';
-            console.error(err);
-        });
-    }
-
-    function resetAnnotation() {
-        keypoints = [];
-        drawImage();
-    }
-
-    function undoLastKeypoint() {
+                throw new Error(data.message || 'Failed to save annotation');
+            }
+        } catch (error) {
+            alert('Error saving annotation: ' + error.message);
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('resetButton').addEventListener('click', () => {
+        if (confirm('Are you sure you want to reset all keypoints?')) {
+            keypoints = [];
+            drawImage();
+            updateKeypointCount();
+        }
+    });
+    
+    document.getElementById('undoButton').addEventListener('click', () => {
         keypoints.pop();
         drawImage();
-    }
+        updateKeypointCount();
+    });
+    
+    document.getElementById('goBackButton').addEventListener('click', () => {
+        if (keypoints.length > 0) {
+            if (confirm('You have unsaved changes. Are you sure you want to go back?')) {
+                window.location.href = "{% url 'annotator_dashboard' %}";
+            }
+        } else {
+            window.location.href = "{% url 'annotator_dashboard' %}";
+        }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        drawImage();
+    });
 </script>
 {% endblock %}

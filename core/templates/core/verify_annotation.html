@@ -6,10 +6,39 @@
 <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
     <div class="p-8">
         <h2 class="text-2xl font-bold mb-4">Verify Annotation</h2>
+        
+        <!-- Existing Verifications -->
+        {% if existing_verifications %}
+        <div class="mb-6 bg-gray-50 p-4 rounded">
+            <h3 class="text-lg font-semibold mb-2">Previous Verifications</h3>
+            <div class="space-y-2">
+                {% for verification in existing_verifications %}
+                <div class="border-l-4 {% if verification.status == 'approved' %}border-green-500{% else %}border-red-500{% endif %} p-3">
+                    <p class="text-sm">
+                        <span class="font-medium">{{ verification.verifier.username }}</span> 
+                        {{ verification.status }} this annotation
+                        <span class="text-gray-500">{{ verification.created_at|timesince }} ago</span>
+                    </p>
+                    {% if verification.feedback %}
+                    <p class="text-sm text-gray-600 mt-1">{{ verification.feedback }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Rest of your existing template code -->
         <div class="mb-4">
             <img src="{{ annotation.file.url }}" alt="Annotation #{{ annotation.id }}" id="annotationImage" class="max-w-full h-auto">
             <canvas id="annotationCanvas" class="border border-gray-300 mt-4"></canvas>
         </div>
+        
+        {% if user_has_verified %}
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
+            <p class="text-yellow-700">You have already verified this annotation.</p>
+        </div>
+        {% else %}
         <form method="post" class="space-y-4">
             {% csrf_token %}
             <div>
@@ -28,6 +57,7 @@
                 <a href="{% url 'verifier_dashboard' %}" class="ml-4 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</a>
             </div>
         </form>
+        {% endif %}
     </div>
 </div>
 

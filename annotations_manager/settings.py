@@ -135,3 +135,9 @@ LOGIN_REDIRECT_URL = 'dashboard'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Define the path to the weights directory
+WEIGHTS_DIR = os.path.join(BASE_DIR, 'weights')
+# Define the path to the model weights
+MODEL_WEIGHTS_PATH = os.path.join(WEIGHTS_DIR, 'best26.pt')
+# MODEL_WEIGHTS_PATH = os.path.join(WEIGHTS_DIR, 'best26.pt')
