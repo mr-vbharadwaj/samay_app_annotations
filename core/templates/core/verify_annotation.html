@@ -5,20 +5,100 @@
 {% block content %}
 <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
     <div class="p-8">
-        <h2 class="text-2xl font-bold mb-4">Verify Annotation #{{ annotation.id }}</h2>
-        <div class="mb-8">
-            <img src="{{ annotation.image.file.url }}" alt="Annotated image" class="max-w-full h-auto">
+        <h2 class="text-2xl font-bold mb-4">Verify Annotation</h2>
+        <div class="mb-4">
+            <img src="{{ annotation.file.url }}" alt="Annotation #{{ annotation.id }}" id="annotationImage" class="max-w-full h-auto">
+            <canvas id="annotationCanvas" class="border border-gray-300 mt-4"></canvas>
         </div>
-        <div class="mb-8">
-            <h3 class="text-xl font-bold mb-2">Annotation Data:</h3>
-            <pre class="bg-gray-100 p-4 rounded">{{ annotation.data|pprint }}</pre>
-        </div>
-        <form method="post">
+        <form method="post" class="space-y-4">
             {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">Submit Verification</button>
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                <select id="status" name="status" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            <div>
+                <label for="feedback" class="block text-sm font-medium text-gray-700">Feedback</label>
+                <textarea id="feedback" name="feedback" rows="3" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+            </div>
+            <div>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Submit Verification</button>
+                <a href="{% url 'verifier_dashboard' %}" class="ml-4 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</a>
+            </div>
         </form>
     </div>
 </div>
+
+<script>
+    // Fetch the canvas and context
+    const canvas = document.getElementById('annotationCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Create a new Image instance and set its source
+    const img = new Image();
+    img.src = "{{ annotation.file.url|escapejs }}"; // Properly escape for JavaScript
+
+    // Parse annotations passed from the backend
+    const annotations = JSON.parse('{{ annotation.data|safe|escapejs }}');
+
+    // Wait for the image to load before rendering
+    img.onload = function () {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        drawAnnotations();
+    };
+
+    // Function to draw annotations on the canvas
+    function drawAnnotations() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+        ctx.drawImage(img, 0, 0); // Draw the image
+
+        // Draw each annotation
+        annotations.forEach((point, index) => {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI); // Draw a circle
+            ctx.fillStyle = 'red'; // Fill the circle with red color
+            ctx.fill();
+            ctx.fillStyle = 'white'; // Set font color to white for text
+            ctx.font = '12px Arial'; // Set font properties
+            ctx.fillText(index + 1, point.x - 3, point.y + 4); // Add text label
+        });
+    }
+
+    // Handle form submission
+    document.querySelector('form').addEventListener('submit', function (e) {
+        e.preventDefault(); // Prevent default form submission
+
+        // Fetch status and feedback from the form
+        const status = document.getElementById('status').value;
+        const feedback = document.getElementById('feedback').value;
+
+        // Send POST request with CSRF token
+        fetch("{% url 'verify_annotation' annotation.id %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}' // CSRF token from template
+            },
+            body: JSON.stringify({ status, feedback }) // Stringify the body
+        })
+            .then(response => response.json()) // Parse JSON response
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Verification submitted successfully');
+                    window.location.href = "{% url 'verifier_dashboard' %}"; // Redirect
+                } else {
+                    alert('Error submitting verification: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unexpected error occurred.');
+            });
+    });
+</script>
+
 {% endblock %}
 

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Annotation{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="p-8">
+        <h2 class="text-2xl font-bold mb-4">Edit Annotation</h2>
+        <div class="mb-4">
+            <img src="{{ annotation.image.file.url }}" alt="Original Image" id="originalImage" class="max-w-full h-auto">
+            <canvas id="annotationCanvas" class="border border-gray-300 mt-4"></canvas>
+        </div>
+        <button id="saveButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Save Changes</button>
+        <button id="resetButton" class="ml-2 bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">Reset</button>
+        <a href="{% url 'view_annotations' %}" class="ml-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</a>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('annotationCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = "{{ annotation.image.file.url }}";
+    // Parse annotations passed from the backend
+    const annotations = JSON.parse('{{ annotation.data|safe|escapejs }}');
+    let originalAnnotations = JSON.parse(JSON.stringify(annotations));
+
+    img.onload = function() {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        drawAnnotations();
+    };
+
+    function drawAnnotations() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        annotations.forEach((point, index) => {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.fillText(index + 1, point.x - 3, point.y + 4);
+        });
+    }
+
+    canvas.addEventListener('click', function(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        annotations.push({x, y});
+        drawAnnotations();
+    });
+
+    document.getElementById('saveButton').addEventListener('click', function() {
+        fetch("{% url 'edit_annotation' annotation.id %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({annotation_data: annotations})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Annotation updated successfully');
+                window.location.href = "{% url 'view_annotations' %}";
+            } else {
+                alert('Error updating annotation: ' + data.message);
+            }
+        });
+    });
+
+    document.getElementById('resetButton').addEventListener('click', function() {
+        annotations = JSON.parse(JSON.stringify(originalAnnotations));
+        drawAnnotations();
+    });
+</script>
+{% endblock %}
+

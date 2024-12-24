@@ -8,24 +8,26 @@ class User(AbstractUser):
         ('verifier', 'Verifier'),
         ('viewer', 'Viewer'),
     )
-    user_type = models.CharField(
-        max_length=10,
-        choices=ROLES,
-        default='user',
-    )
-    role = models.CharField(max_length=20, choices=ROLES, default='viewer')
+    user_type = models.CharField(max_length=20, choices=ROLES, default='viewer')
+    role = models.CharField(max_length=20, choices=ROLES)
+    def save(self, *args, **kwargs):
+        if not self.role:  # If role is not set, set it to user_type
+            self.role = self.user_type
+        super().save(*args, **kwargs)
 
 class Image(models.Model):
     file = models.ImageField(upload_to='images/')
-    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_images', default=1)
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_images')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
 class Annotation(models.Model):
+    file = models.ImageField(upload_to='pending_verifications/')
     image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='annotations')
     annotator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='annotations')
-    data = models.JSONField()
+    data = models.JSONField()  # This will store the keypoint data
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    verifier = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assigned_verifications')
 
 class Verification(models.Model):
     STATUS_CHOICES = (
@@ -39,16 +41,7 @@ class Verification(models.Model):
     feedback = models.TextField(blank=True)
     verified_at = models.DateTimeField(auto_now=True)
 
-class Batch(models.Model):
-    name = models.CharField(max_length=255)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_batches')
-    created_at = models.DateTimeField(auto_now_add=True)
-    images = models.ManyToManyField(Image, related_name='batches')
-    description = models.TextField(blank=True)
-
 class AuditLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     action = models.CharField(max_length=255)
-    url = models.CharField(max_length=255)
-    data = models.TextField(blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)

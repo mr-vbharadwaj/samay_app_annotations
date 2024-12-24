@@ -14,7 +14,7 @@ class ImageSerializer(serializers.ModelSerializer):
 class AnnotationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Annotation
-        fields = ['id', 'image', 'annotator', 'data', 'created_at', 'updated_at']
+        fields = ['id', 'file', 'image', 'annotator', 'data', 'created_at', 'updated_at', 'verifier']
 
 class VerificationSerializer(serializers.ModelSerializer):
     class Meta:

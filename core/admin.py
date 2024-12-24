@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Image, Annotation, Verification, Batch
+from .models import User, Image, Annotation, Verification
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'user_type', 'is_staff')
@@ -16,5 +16,4 @@ admin.site.register(User, CustomUserAdmin)
 admin.site.register(Image)
 admin.site.register(Annotation)
 admin.site.register(Verification)
-admin.site.register(Batch)
 

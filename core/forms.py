@@ -1,38 +1,25 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import User, Image, Annotation, Verification, Batch
-
-class CustomUserCreationForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = UserCreationForm.Meta.fields + ('role',)
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from .models import User, Image
 
 class LoginForm(AuthenticationForm):
-    pass
+    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
 
 class ImageUploadForm(forms.ModelForm):
     class Meta:
         model = Image
         fields = ['file']
-
-class AnnotationForm(forms.ModelForm):
-    class Meta:
-        model = Annotation
-        fields = ['data']
         widgets = {
-            'data': forms.Textarea(attrs={'rows': 4}),
+            'file': forms.FileInput(attrs={'class': 'form-control-file'})
         }
 
-class VerificationForm(forms.ModelForm):
-    class Meta:
-        model = Verification
-        fields = ['status', 'feedback']
-        widgets = {
-            'feedback': forms.Textarea(attrs={'rows': 4}),
-        }
+class CustomUserCreationForm(UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = UserCreationForm.Meta.fields + ('user_type',)
 
-class BatchForm(forms.ModelForm):
-    class Meta:
-        model = Batch
-        fields = ['name', 'description']
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['user_type'].widget = forms.Select(choices=User.ROLES)
 

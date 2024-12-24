@@ -3,30 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Annotations Manager{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    {% block extra_head %}{% endblock %}
+    <title>{% block title %}Annotation Manager{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-100">
-    <nav class="bg-blue-600 text-white p-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <a href="{% url 'dashboard' %}" class="text-2xl font-bold">Annotations Manager</a>
-            {% if user.is_authenticated %}
-                <div>
-                    <span class="mr-4">Welcome, {{ user.username }}</span>
-                    <a href="{% url 'logout' %}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Logout</a>
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between">
+                <div class="flex space-x-7">
+                    <div>
+                        <a href="{% url 'dashboard' %}" class="flex items-center py-4 px-2">
+                            <span class="font-semibold text-gray-500 text-lg">Annotation Manager</span>
+                        </a>
+                    </div>
                 </div>
-            {% endif %}
+                <div class="hidden md:flex items-center space-x-3 ">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="py-2 px-2 font-medium text-gray-500 rounded hover:bg-green-500 hover:text-white transition duration-300">Dashboard</a>
+                        <a href="{% url 'logout' %}" class="py-2 px-2 font-medium text-gray-500 rounded hover:bg-green-500 hover:text-white transition duration-300">Logout</a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="py-2 px-2 font-medium text-gray-500 rounded hover:bg-green-500 hover:text-white transition duration-300">Log In</a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </nav>
 
-    <main class="container mx-auto mt-8 p-4">
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="bg-gray-200 text-center p-4 mt-8">
-        <p>&copy; 2024 Annotations Manager. All rights reserved.</p>
-    </footer>
+    <div class="container mx-auto mt-8 px-4">
+        {% block content %}
+        {% endblock %}
+    </div>
 
     {% block extra_js %}{% endblock %}
 </body>

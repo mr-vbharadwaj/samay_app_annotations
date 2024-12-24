@@ -3,15 +3,23 @@
 {% block title %}Create User{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
-    <div class="p-8">
-        <h2 class="text-2xl font-bold mb-4">Create User</h2>
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">Create User</button>
-        </form>
-    </div>
+<h1 class="text-3xl font-bold mb-8">Create User</h1>
+<div class="bg-white rounded-lg shadow-md overflow-hidden p-4">
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-4">
+            <label for="{{ field.id_for_label }}" class="block text-gray-700 font-bold mb-2">{{ field.label }}:</label>
+            {{ field }}
+            {% if field.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ field.errors.0 }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+            Create User
+        </button>
+    </form>
 </div>
 {% endblock %}
 

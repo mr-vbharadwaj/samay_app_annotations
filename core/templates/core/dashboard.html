@@ -3,29 +3,33 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
-    <div class="p-8">
-        <h2 class="text-2xl font-bold mb-4">Dashboard</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {% for image in images %}
-            <div class="border rounded-lg overflow-hidden">
-                <img src="{{ image.file.url }}" alt="Image #{{ image.id }}" class="w-full h-48 object-cover">
-                <div class="p-4">
-                    <p class="text-sm text-gray-600">Image #{{ image.id }}</p>
-                    <a href="{% url 'create_annotation' image.id %}" class="mt-2 inline-block bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-1 px-2 rounded">
-                        Annotate
-                    </a>
-                </div>
-            </div>
-            {% empty %}
-            <p class="col-span-3 text-gray-500">No images uploaded yet.</p>
-            {% endfor %}
-        </div>
-        <div class="mt-8">
-            <a href="{% url 'upload_image' %}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Upload New Image</a>
-            <a href="{% url 'view_annotations' %}" class="ml-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">View Annotations</a>
-        </div>
-    </div>
+<h1 class="text-3xl font-bold mb-8">Welcome, {{ user.username }}</h1>
+<p class="mb-4">Your role: {{ user.get_user_type_display }}</p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% if user.user_type == 'admin' %}
+    <a href="{% url 'admin_dashboard' %}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Admin Dashboard
+    </a>
+    {% elif user.user_type == 'annotator' %}
+    <a href="{% url 'annotator_dashboard' %}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+        Annotator Dashboard
+    </a>
+    <a href="{% url 'upload_image' %}" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+        Upload Image
+    </a>
+    {% elif user.user_type == 'verifier' %}
+    <a href="{% url 'verifier_dashboard' %}" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+        Verifier Dashboard
+    </a>
+    <a href="{% url 'upload_image' %}" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+        Upload Image
+    </a>
+    {% elif user.user_type == 'viewer' %}
+    <a href="{% url 'viewer_dashboard' %}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+        Viewer Dashboard
+    </a>
+    {% endif %}
+    
 </div>
 {% endblock %}
 
