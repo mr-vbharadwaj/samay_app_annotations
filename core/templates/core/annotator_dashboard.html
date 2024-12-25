@@ -10,9 +10,24 @@
         <img src="{{ image.file.url }}" alt="Image #{{ image.id }}" class="w-full h-48 object-cover">
         <div class="p-4">
             <p class="text-gray-600 mb-2">Image #{{ image.id }}</p>
+            <p class="text-gray-500 mb-4">Uploaded by: {{ image.uploaded_by.username }}</p>
             <a href="{% url 'create_annotation' image.id %}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Annotate
             </a>
+            <div class="mt-4">
+                <p class="font-bold text-gray-700 mb-2">Existing Annotations:</p>
+                <ul class="list-disc pl-5">
+                    {% for annotation in image.annotations.all %}
+                    <li>
+                        <a href="{% url 'view_annotation' annotation.id %}" class="text-blue-500 hover:underline">
+                            Annotation Version {{ annotation.version }} by {{ annotation.annotator.username }}
+                        </a>
+                    </li>
+                    {% empty %}
+                    <p class="text-gray-500">No annotations available for this image.</p>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
     </div>
     {% empty %}
@@ -20,4 +35,3 @@
     {% endfor %}
 </div>
 {% endblock %}
-

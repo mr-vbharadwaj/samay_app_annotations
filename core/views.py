@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.conf import settings
-from .models import User, Image, Annotation, Verification, AuditLog
+from .models import User, Image, Annotation, Verification, AuditLog, Notification
 from .forms import LoginForm, ImageUploadForm, CustomUserCreationForm
 from .decorators import viewer_required, annotator_required, verifier_required, admin_required
 import json
@@ -15,6 +15,8 @@ import os
 from PIL import Image as PILImage, ImageDraw
 from .keypoint_prediction import load_model, predict_keypoints, correct_keypoints
 import logging
+from django.core.files import File
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +55,64 @@ def admin_dashboard(request):
 
 @annotator_required
 def annotator_dashboard(request):
-    images = Image.objects.all()
-    return render(request, 'core/annotator_dashboard.html', {'images': images})
+    try:
+        # Use pathlib for more robust path handling
+        images_dir = Path(settings.MEDIA_ROOT) / 'images'
+        
+        # Create the images directory if it doesn't exist
+        images_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Get existing image filenames from database
+        existing_images = Image.objects.all()
+        existing_filenames = {os.path.basename(img.file.name) for img in existing_images}
+        
+        logger.debug(f"Existing filenames in database: {existing_filenames}")
+        
+        # Iterate through local files
+        for file_path in images_dir.iterdir():
+            if file_path.is_file() and file_path.suffix.lower() in {'.jpg', '.jpeg', '.png', '.gif'}:
+                filename = file_path.name
+                
+                logger.debug(f"Checking file: {filename}")
+                
+                # Only add if filename is not in the database
+                if filename not in existing_filenames:
+                    try:
+                        logger.debug(f"Adding new image: {filename}")
+                        
+                        with open(file_path, 'rb') as f:
+                            file_obj = File(f, name=f"images/{filename}")
+                            new_image = Image.objects.create(
+                                file=file_obj,
+                                uploaded_by=request.user
+                            )
+                            logger.debug(f"Successfully added image: {new_image.file.name}")
+                    except Exception as e:
+                        logger.error(f"Error processing file {filename}: {str(e)}")
+                        continue
+                else:
+                    logger.debug(f"Image already exists in database: {filename}")
+        
+        # Fetch all images with their annotations
+        images = Image.objects.prefetch_related('annotations').all()
+        
+        return render(request, 'core/annotator_dashboard.html', {
+            'images': images,
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in annotator_dashboard: {str(e)}")
+        return render(request, 'core/annotator_dashboard.html', {
+            'images': Image.objects.prefetch_related('annotations').all(),
+            'error': f"Error accessing image directory: {str(e)}"
+        })
+        
+    except Exception as e:
+        # Add error context to the template
+        return render(request, 'core/annotator_dashboard.html', {
+            'images': Image.objects.prefetch_related('annotations').all(),
+            'error': f"Error accessing image directory: {str(e)}"
+        })
 
 @verifier_required
 def verifier_dashboard(request):
@@ -88,35 +146,78 @@ def upload_image(request):
 def create_annotation(request, image_id):
     image = get_object_or_404(Image, id=image_id)
     image_path = os.path.join(settings.MEDIA_ROOT, image.file.name)
-    
-    # Initialize default response data
+
     context = {
         'image': image,
         'keypoints': [],
         'bbox': [],
         'bbox_n': [],
         'error_message': None,
-        'image_dimensions': None
+        'image_dimensions': None,
+        'verifiers': User.objects.filter(role='verifier'),
+        'existing_annotations': image.annotations.all(),
     }
-    
+
+    if model is None:
+        raise RuntimeError("Model not loaded")
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        annotation_data = data.get('annotation_data')
+        verifier_id = data.get('verifier_id')
+
+        if not annotation_data:
+            return JsonResponse({'status': 'error', 'message': 'No annotation data provided'}, status=400)
+
+        verifier = None
+        if verifier_id:
+            verifier = get_object_or_404(User, id=verifier_id, role='verifier')
+
+        latest_annotation = Annotation.objects.filter(image=image).order_by('-version').first()
+        new_version = latest_annotation.version + 1 if latest_annotation else 1
+
+        annotation = Annotation.objects.create(
+            image=image,
+            annotator=request.user,
+            data=annotation_data,
+            version=new_version,
+            verifier=verifier
+        )
+
+
+        annotations_dir = os.path.join(settings.MEDIA_ROOT, 'pending_verifications')
+        os.makedirs(annotations_dir, exist_ok=True)
+        output_image_path = os.path.join(annotations_dir, f"{annotation.id}_annotation.png")
+
+        with PILImage.open(image_path) as img:
+            draw = ImageDraw.Draw(img)
+            for point in annotation_data:
+                x, y = point['x'], point['y']
+                radius = 5
+                draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill="red")
+            img.save(output_image_path)
+
+        annotation.file = f"pending_verifications/{annotation.id}_annotation.png"
+        annotation.save()
+
+        if verifier:
+            Notification.objects.create(
+                user=verifier,
+                message=f"New annotation assigned for verification by {request.user.username}"
+            )
+
+        return JsonResponse({'status': 'success', 'message': 'Annotation saved successfully'})
+
     try:
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"Image file not found: {image_path}")
-            
-        if model is None:
-            raise RuntimeError("Model not loaded. Please check model configuration.")
-        
-        # Read image for dimensions
         img = cv2.imread(image_path)
         if img is None:
             raise ValueError("Failed to read image file")
-            
+
         context['image_dimensions'] = {
             'width': img.shape[1],
             'height': img.shape[0]
         }
-        
-        # Get predictions
+
         keypoints, bbox, bbox_n = predict_keypoints(model, image_path)
         if keypoints and len(keypoints) > 0:
             corrected_keypoints = correct_keypoints(keypoints[0], img)
@@ -127,11 +228,10 @@ def create_annotation(request, image_id):
             })
         else:
             context['error_message'] = "No keypoints detected in the image"
-            
     except Exception as e:
         logger.error(f"Annotation creation failed: {e}")
         context['error_message'] = f"Failed to process image: {str(e)}"
-    
+
     return render(request, 'core/create_annotation.html', context)
 
 @require_POST
@@ -251,6 +351,12 @@ def view_annotations(request):
 def edit_annotation(request, annotation_id):
     annotation = get_object_or_404(Annotation, id=annotation_id)
     
+    context = {
+        'annotation': annotation,
+        'image_url': annotation.image.get_file_url(),
+        'annotation_url': annotation.file.url if annotation.file else '',
+    }
+    
     if request.method == 'POST':
         data = json.loads(request.body)
         updated_annotation_data = data.get('annotation_data')
@@ -263,6 +369,7 @@ def edit_annotation(request, annotation_id):
         
         # Update the annotation image
         annotations_dir = os.path.join(settings.MEDIA_ROOT, 'pending_verifications')
+        os.makedirs(annotations_dir, exist_ok=True)
         output_image_path = os.path.join(annotations_dir, f"{annotation.image.id}_annotation.png")
         original_image_path = os.path.join(settings.MEDIA_ROOT, annotation.image.file.name)
         
@@ -274,44 +381,56 @@ def edit_annotation(request, annotation_id):
                 draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill="red")
             img.save(output_image_path)
         
-        AuditLog.objects.create(user=request.user, action=f"Edited annotation {annotation.id}")
+        annotation.file = f"pending_verifications/{annotation.image.id}_annotation.png"
+        annotation.save()
+        
+        Notification.objects.create(
+            user=annotation.verifier,
+            message=f"Annotation {annotation.id} has been updated by {request.user.username}"
+        )
         
         return JsonResponse({'status': 'success', 'message': 'Annotation updated successfully'})
     
-    return render(request, 'core/edit_annotation.html', {'annotation': annotation})
+    return render(request, 'core/edit_annotation.html', context)
 
 @verifier_required
 @require_http_methods(["GET", "POST"])
 def verify_annotation(request, annotation_id):
     annotation = get_object_or_404(Annotation, id=annotation_id)
-    
+
+    context = {
+        'annotation': annotation,
+        'image_url': annotation.image.file.url,
+        'annotation_url': annotation.file.url if annotation.file else '',
+    }
+
     if request.method == 'POST':
         status = request.POST.get('status')
         feedback = request.POST.get('feedback', '')
-        
-        verification, created = Verification.objects.get_or_create(
+
+        verification, created = Verification.objects.update_or_create(
             annotation=annotation,
             defaults={'verifier': request.user, 'status': status, 'feedback': feedback}
         )
-        
-        if not created:
-            verification.status = status
-            verification.feedback = feedback
-            verification.save()
-        
+
         if status == 'approved':
-            # Move the annotation to verified_annotations
-            src_path = os.path.join(settings.MEDIA_ROOT, 'pending_verifications', f"{annotation.image.id}_annotation.png")
+            src_path = os.path.join(settings.MEDIA_ROOT, annotation.file.name)
             dst_dir = os.path.join(settings.MEDIA_ROOT, 'verified_annotations')
             os.makedirs(dst_dir, exist_ok=True)
-            dst_path = os.path.join(dst_dir, f"{annotation.image.id}_annotation.png")
-            os.rename(src_path, dst_path)
-        
-        AuditLog.objects.create(user=request.user, action=f"Verified annotation {annotation.id} as {status}")
-        
+            dst_path = os.path.join(dst_dir, f"{annotation.id}_annotation.png")
+            os.replace(src_path, dst_path)
+            annotation.file = f"verified_annotations/{annotation.id}_annotation.png"
+            annotation.save()
+
+        Notification.objects.create(
+            user=annotation.annotator,
+            message=f"Your annotation has been {status} by {request.user.username}. Feedback: {feedback}"
+        )
+
         return redirect('verifier_dashboard')
-    
-    return render(request, 'core/verify_annotation.html', {'annotation': annotation})
+
+    return render(request, 'core/verify_annotation.html', context)
+
 
 @admin_required
 def create_user(request):
@@ -324,3 +443,13 @@ def create_user(request):
     else:
         form = CustomUserCreationForm()
     return render(request, 'core/create_user.html', {'form': form})
+
+@login_required
+def view_annotation(request, annotation_id):
+    annotation = get_object_or_404(Annotation, id=annotation_id)
+    context = {
+        'annotation': annotation,
+        'image_url': annotation.image.file.url,
+        'annotation_url': annotation.file.url if annotation.file else '',
+    }
+    return render(request, 'core/view_annotation.html', context)

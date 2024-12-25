@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: grid;">
+    <h2>View Annotation</h2>
+    <br>
+    <div style="display: flex;">
+        <img src="{{ image_url }}" alt="Original Image">
+        <img src="{{ annotation_url }}" alt="Annotated Image">
+    </div>
+    <br>
+    <div style="display: flex; justify-content: space-between;">
+        <h3>Annotation Data</h3>
+        <pr>{{ annotation.data|json_script:"annotation-data" }}</pr>
+        <h3>Feedback</h3>
+        <p>{{ annotation.feedback }}</p>
+    </div>
+    <br>
+    <center>    <a href="{% url 'annotator_dashboard' %}"><button>Go Back</button></a></center>
+</div>
+{% endblock %}

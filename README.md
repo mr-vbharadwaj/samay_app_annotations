@@ -95,49 +95,52 @@ Ensure the following software is installed on your system:
 The following is the structure of the project:
 
 ```
-annotations_manager
-├─ .vscode/                # IDE configuration files
-│  └─ settings.json
-├─ annotations_manager/    # Core project settings
+annotations_manager - Copy
+├─ .gitignore
+├─ annotations_manager
 │  ├─ asgi.py
-│  ├─ settings.py
 │  ├─ urls.py
 │  ├─ wsgi.py
 │  └─ __init__.py
-├─ core/                   # Main application logic
-│  ├─ admin.py             # Admin panel configurations
-│  ├─ apps.py              # App configuration
-│  ├─ decorators.py        # Custom decorators
-│  ├─ forms.py             # Django forms
-│  ├─ middleware.py        # Custom middleware
-│  ├─ models.py            # Database models
-│  ├─ serializers.py       # API serializers
-│  ├─ templates/           # HTML templates
-│  │  ├─ base.html         # Base template
-│  │  └─ core/
+├─ core
+│  ├─ admin.py
+│  ├─ apps.py
+│  ├─ decorators.py
+│  ├─ forms.py
+│  ├─ keypoint_prediction.py
+│  ├─ middleware.py
+│  ├─ migrations
+│  ├─ models.py
+│  ├─ templates
+│  │  ├─ base.html
+│  │  └─ core
 │  │     ├─ admin_dashboard.html
 │  │     ├─ annotator_dashboard.html
+│  │     ├─ create_annotation.html
+│  │     ├─ create_user.html
+│  │     ├─ dashboard.html
+│  │     ├─ edit_annotation.html
+│  │     ├─ login.html
+│  │     ├─ upload_image.html
 │  │     ├─ verifier_dashboard.html
-│  │     └─ viewer_dashboard.html
-│  ├─ tests.py             # Test cases
-│  ├─ urls.py              # Application-specific URL routes
-│  ├─ views.py             # Views and request handlers
-│  └─ migrations/          # Database migration files
-├─ dataset/                # Placeholder for image datasets
-├─ db.sqlite3              # SQLite database (default, replaceable)
-├─ manage.py               # Django management script
-├─ media/                  # Uploaded files
-│  ├─ annotations/         # Annotation files (JSON)
-│  ├─ images/              # Uploaded images
-│  ├─ pending_verifications/
-│  └─ verified_annotations/
-├─ static/                 # Static files (CSS, JS, etc.)
-│  ├─ css/
-│  └─ js/
-├─ templates/              # Error pages
+│  │     ├─ verify_annotation.html
+│  │     ├─ viewer_dashboard.html
+│  │     └─ view_annotation.html
+│  ├─ tests.py
+│  ├─ urls.py
+│  ├─ views.py
+│  └─ __init__.py
+├─ dataset
+├─ manage.py
+├─ media
+├─ README.md
+├─ requirements.txt
+├─ templates
 │  ├─ 404.html
 │  └─ 500.html
-└─ README.md               # Project documentation
+└─ weights
+   └─ best26.pt
+
 ```
 
 ---
@@ -166,7 +169,7 @@ annotations_manager
 
 ### Annotation Workflow
 
-1. **Upload Images**: Admin uploads images to the system.
+1. **Upload Images**: Annotator uploads images to the system.
 2. **Annotate**: Annotators create annotations and submit them for verification.
 3. **Verify**: Verifiers review the annotations, approve or provide feedback.
 4. **View Results**: Verified annotations are accessible to viewers.
@@ -194,12 +197,7 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
 
 ## Contact
 
-For questions or support, contact [your-email@example.com](mailto:your-email@example.com).
+For questions or support, contact [varunbharadwajmv@gmail.com](mailto:varunbharadwajmv@gmail.com).

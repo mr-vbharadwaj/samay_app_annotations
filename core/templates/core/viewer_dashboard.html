@@ -32,9 +32,9 @@
                 <div class="p-4">
                     <p class="text-sm text-gray-600 mb-2">Annotation #{{ annotation.id }}</p>
                     <p class="text-sm text-gray-600 mb-2">Verified by: {{ annotation.verification.verifier.username }}</p>
-                    <button class="bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110 view-annotation" data-annotation-id="{{ annotation.id }}">
+                    <a href="{% url 'view_annotation' annotation.id %}"><button class="bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110 view-annotation" data-annotation-id="{{ annotation.id }}">
                         View Details
-                    </button>
+                    </button></a>
                 </div>
             </div>
             {% empty %}
@@ -78,7 +78,7 @@
             button.addEventListener('click', function() {
                 const annotationId = this.getAttribute('data-annotation-id');
                 // Fetch annotation details from the server
-                fetch(`/api/annotation/${annotationId}/`)
+                fetch(`/api/view-annotation/${annotationId}/`)
                     .then(response => response.json())
                     .then(data => {
                         modalTitle.textContent = `Annotation #${annotationId}`;

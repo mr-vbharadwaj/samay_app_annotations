@@ -21,9 +21,6 @@
     <a href="{% url 'verifier_dashboard' %}" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
         Verifier Dashboard
     </a>
-    <a href="{% url 'upload_image' %}" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
-        Upload Image
-    </a>
     {% elif user.user_type == 'viewer' %}
     <a href="{% url 'viewer_dashboard' %}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
         Viewer Dashboard
