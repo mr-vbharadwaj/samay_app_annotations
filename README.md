@@ -24,14 +24,11 @@ Annotation Manager is a Django-based web application designed to manage image an
 
 - **Comment System**:
 
-  - Annotators and verifiers can add comments to annotations.
+  - Annotators and verifiers can add comments to annotations. (Future Enhancement)
 
 - **Dashboards**:
 
   - Role-specific dashboards for streamlined workflows.
-
-- **Audit Logging**:
-  - Track changes and activities across the system.
 
 ---
 
@@ -52,6 +49,7 @@ Ensure the following software is installed on your system:
    ```bash
    git clone https://github.com/yourusername/annotations_manager.git
    cd annotations_manager
+   git checkout newBranch
    ```
 
 2. Create a virtual environment (optional):
@@ -74,8 +72,8 @@ Ensure the following software is installed on your system:
    python manage.py migrate
    ```
 
-5. Create a superuser:
-
+5. Create a superuser (This is the admin who can create user accounts):
+     
    ```bash
    python manage.py createsuperuser
    ```
@@ -98,38 +96,43 @@ The following is the structure of the project:
 annotations_manager
 ├─ .vscode/                # IDE configuration files
 │  └─ settings.json
+├─ .gitignore
 ├─ annotations_manager/    # Core project settings
 │  ├─ asgi.py
 │  ├─ settings.py
 │  ├─ urls.py
 │  ├─ wsgi.py
 │  └─ __init__.py
-├─ core/                   # Main application logic
-│  ├─ admin.py             # Admin panel configurations
-│  ├─ apps.py              # App configuration
-│  ├─ decorators.py        # Custom decorators
-│  ├─ forms.py             # Django forms
-│  ├─ middleware.py        # Custom middleware
-│  ├─ models.py            # Database models
-│  ├─ serializers.py       # API serializers
-│  ├─ templates/           # HTML templates
-│  │  ├─ base.html         # Base template
-│  │  └─ core/
+├─ core/                     # Main application logic
+│  ├─ admin.py               # Admin panel configurations
+│  ├─ apps.py                # App configuration
+│  ├─ decorators.py          # Custom decorators
+│  ├─ forms.py               # Django forms
+│  ├─ keypoint_prediction.py # Code for key point prediction
+│  ├─ middleware.py          # Custom middleware
+│  ├─ models.py              # Database models
+│  ├─ templates/             # HTML templates
+│  │  ├─ base.html           # Base template
+│  │  └─ core
 │  │     ├─ admin_dashboard.html
 │  │     ├─ annotator_dashboard.html
+│  │     ├─ create_annotation.html
+│  │     ├─ create_user.html
+│  │     ├─ dashboard.html
+│  │     ├─ edit_annotation.html
+│  │     ├─ login.html
+│  │     ├─ upload_image.html
 │  │     ├─ verifier_dashboard.html
+│  │     ├─ verify_annotation.html
 │  │     └─ viewer_dashboard.html
-│  ├─ tests.py             # Test cases
 │  ├─ urls.py              # Application-specific URL routes
 │  ├─ views.py             # Views and request handlers
 │  └─ migrations/          # Database migration files
-├─ dataset/                # Placeholder for image datasets
 ├─ db.sqlite3              # SQLite database (default, replaceable)
 ├─ manage.py               # Django management script
 ├─ media/                  # Uploaded files
-│  ├─ annotations/         # Annotation files (JSON)
 │  ├─ images/              # Uploaded images
-│  ├─ pending_verifications/
+│  ├─ pending_verifications/ # Annotation files (JSON) and images
 │  └─ verified_annotations/
 ├─ static/                 # Static files (CSS, JS, etc.)
 │  ├─ css/
@@ -138,6 +141,12 @@ annotations_manager
 │  ├─ 404.html
 │  └─ 500.html
 └─ README.md               # Project documentation
+├─ requirements.txt
+├─ templates
+│  ├─ 404.html
+│  └─ 500.html
+└─ weights
+   └─ best26.pt
 ```
 
 ---
