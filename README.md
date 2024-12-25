@@ -49,7 +49,7 @@ Ensure the following software is installed on your system:
    ```bash
    git clone https://github.com/yourusername/annotations_manager.git
    cd annotations_manager
-   git checkout newBranch
+   git checkout changesBranch
    ```
 
 2. Create a virtual environment (optional):
